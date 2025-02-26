@@ -1,12 +1,15 @@
 ﻿using FridgeHandler.Services;
 using FridgeHandler.Data.Models;
 using FridgeHandler.Services.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FridgeHandlerAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
+
     public class RecipesController : ControllerBase
     {
         private readonly IRecipeService _recipeService;
@@ -28,6 +31,22 @@ namespace FridgeHandlerAPI.Controllers
         {
             var newRecipe = await _recipeService.AddRecipeAsync(recipe);
             return CreatedAtAction(nameof(GetRecipes), new { id = newRecipe.Id }, newRecipe);
+        }
+
+        [HttpGet("recommend")]
+        public async Task<ActionResult<IEnumerable<Recipe>>> GetRecommendedRecipesAsync(
+            [FromQuery] IEnumerable<string> ingredients)
+        {
+            if (!ingredients.Any())
+            {
+                return BadRequest("Please provide at least one ingredient.");
+            }
+
+            var suggestedRecipes = await _recipeService.GetRecommendedRecipesAsync(ingredients);
+
+            return suggestedRecipes.Any()
+                ? Ok(suggestedRecipes)
+                : StatusCode(500, "Error: Unable to generate recipe suggestions at this time.");
         }
     }
 }
