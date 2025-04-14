@@ -6,5 +6,11 @@
         public string Name { get; set; }
         public List<string> Ingredients { get; set; } = new(); // Stored as comma-separated values in DB
         public string Instructions { get; set; }
+        public int Calories { get; set; }
+        public int Fat { get; set; }
+        public int Protein { get; set; }
+        public int Servings { get; set; }
+        public string VideoUrl { get; set; }  // this is going to be a youtube link
+
     }
 }

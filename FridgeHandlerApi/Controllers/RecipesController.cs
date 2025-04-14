@@ -8,7 +8,7 @@ namespace FridgeHandlerAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    // [Authorize]
 
     public class RecipesController : ControllerBase
     {
@@ -33,11 +33,11 @@ namespace FridgeHandlerAPI.Controllers
             return CreatedAtAction(nameof(GetRecipes), new { id = newRecipe.Id }, newRecipe);
         }
 
-        [HttpGet("recommend")]
+        [HttpPost("recommend")]
         public async Task<ActionResult<IEnumerable<Recipe>>> GetRecommendedRecipesAsync(
-            [FromQuery] IEnumerable<string> ingredients)
+            [FromBody] IEnumerable<string> ingredients)
         {
-            if (!ingredients.Any())
+            if (ingredients == null || !ingredients.Any())
             {
                 return BadRequest("Please provide at least one ingredient.");
             }
@@ -48,5 +48,6 @@ namespace FridgeHandlerAPI.Controllers
                 ? Ok(suggestedRecipes)
                 : StatusCode(500, "Error: Unable to generate recipe suggestions at this time.");
         }
+
     }
 }

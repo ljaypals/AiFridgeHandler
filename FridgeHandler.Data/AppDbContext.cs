@@ -55,27 +55,50 @@ namespace FridgeHandler.Data
 
             // Seed Food Items
             modelBuilder.Entity<FoodItem>().HasData(
-                new FoodItem { Id = 1, Name = "Milk", ExpiryDate = DateTime.UtcNow.AddDays(5), NutritionInfo = "Calories: 100" },
-                new FoodItem { Id = 2, Name = "Eggs", ExpiryDate = DateTime.UtcNow.AddDays(7), NutritionInfo = "Protein: 6g" },
-                new FoodItem { Id = 3, Name = "Bread", ExpiryDate = DateTime.UtcNow.AddDays(3), NutritionInfo = "Carbs: 50g" }
+                new FoodItem { Id = 1, Name = "Milk", ExpiryDate = DateTime.UtcNow.AddDays(5), NutritionInfo = "Calories: 100" , ImageUri = "null", Quantity = 3},
+                new FoodItem { Id = 2, Name = "Eggs", ExpiryDate = DateTime.UtcNow.AddDays(7), NutritionInfo = "Protein: 6g", ImageUri = "null", Quantity = 12},
+                new FoodItem { Id = 3, Name = "Bread", ExpiryDate = DateTime.UtcNow.AddDays(3), NutritionInfo = "Carbs: 50g", ImageUri = "null", Quantity = 1}
             );
 
             // Seed Recipes
             modelBuilder.Entity<Recipe>().HasData(
-                new Recipe { Id = 1, Name = "Omelette", Ingredients = new List<string> { "Eggs", "Milk", "Salt" }, Instructions = "Whisk and cook in a pan." },
-                new Recipe { Id = 2, Name = "French Toast", Ingredients = new List<string> { "Eggs", "Milk", "Bread" }, Instructions = "Dip bread in egg mixture and fry." }
+                new Recipe
+                {
+                    Id = 1,
+                    Name = "Omelette",
+                    Ingredients = new List<string> { "Eggs", "Milk", "Salt" },
+                    Instructions = "Whisk and cook in a pan.",
+                    Calories = 150,
+                    Fat = 10,
+                    Protein = 12,
+                    Servings = 1,
+                    VideoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                },
+                new Recipe
+                {
+                    Id = 2,
+                    Name = "French Toast",
+                    Ingredients = new List<string> { "Eggs", "Milk", "Bread" },
+                    Instructions = "Dip bread in egg mixture and fry.",
+                    Calories = 250,
+                    Fat = 8,
+                    Protein = 9,
+                    Servings = 2,
+                    VideoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                }
             );
 
+
             // Configure Recipe Ingredients Conversion
-            modelBuilder.Entity<Recipe>()
-                .Property(r => r.Ingredients)
-                .HasConversion(
-                    v => string.Join(',', v),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
-                .Metadata.SetValueComparer(new ValueComparer<List<string>>(
-                    (c1, c2) => c1.SequenceEqual(c2),
-                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
-                    c => c.ToList()));
+            // modelBuilder.Entity<Recipe>()
+            //     .Property(r => r.Ingredients)
+            //     .HasConversion(
+            //         v => string.Join(',', v),
+            //         v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
+            //     .Metadata.SetValueComparer(new ValueComparer<List<string>>(
+            //         (c1, c2) => c1.SequenceEqual(c2),
+            //         c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+            //         c => c.ToList()));
         }
     }
 }

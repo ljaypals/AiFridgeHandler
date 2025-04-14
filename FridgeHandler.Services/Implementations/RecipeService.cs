@@ -61,11 +61,17 @@ namespace FridgeHandler.Services.Implementations
 
             var requestBody = new
             {
-                model = "gpt-4",
+                model = "gpt-3.5-turbo",
                 messages = new[]
                 {
                     new { role = "system", content = "You are an AI fridge assistant suggesting structured recipes in JSON format." },
-                    new { role = "user", content = $"Suggest three recipes using: {string.Join(", ", ingredients)}. Return the result as a JSON array with fields: name, ingredients (list), and instructions." }
+                    new { role = "user", content = $"Suggest three recipes using: {string.Join(", ", ingredients)}. " +
+                                                   "Return a JSON array where each recipe includes: name, ingredients (list)," +
+                                                   " instructions (string), calories (integer), fat (integer), protein (integer), " +
+                                                   "servings (integer), and videoUrl (string). " +
+                                                   "Try to find a relevant YouTube link for each recipe that shows how to make it, " +
+                                                   "and include it as the videoUrl." }
+
                 }
             };
 
@@ -91,14 +97,36 @@ namespace FridgeHandler.Services.Implementations
                 .GetProperty("content")
                 .GetString();
 
-            var recommendedRecipes = !string.IsNullOrWhiteSpace(recipeContent)
-                ? JsonSerializer.Deserialize<IEnumerable<Recipe>>(recipeContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                : Enumerable.Empty<Recipe>();
+            _logger.LogInformation("Raw GPT content:\n" + recipeContent);
 
-            if (recommendedRecipes == null || !recommendedRecipes.Any())
+            // Clean the GPT formatting
+            var cleanedJson = recipeContent
+                .Replace("```json", "")
+                .Replace("```", "")
+                .Trim();
+
+            _logger.LogInformation("Cleaned GPT JSON:\n" + cleanedJson);
+
+            // ✅ Use advanced JsonSerializerOptions
+            var options = new JsonSerializerOptions
             {
+                PropertyNameCaseInsensitive = true,
+                ReadCommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            };
+
+            IEnumerable<Recipe>? recommendedRecipes = Enumerable.Empty<Recipe>();
+
+            try
+            {
+                recommendedRecipes = JsonSerializer.Deserialize<IEnumerable<Recipe>>(cleanedJson, options);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError("Failed to parse cleaned GPT response as JSON: " + ex.Message);
                 return Enumerable.Empty<Recipe>();
             }
+
 
             // Prevent duplicates in the database
             foreach (var recipe in recommendedRecipes)
