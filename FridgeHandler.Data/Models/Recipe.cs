@@ -11,6 +11,8 @@
         public int Protein { get; set; }
         public int Servings { get; set; }
         public string VideoUrl { get; set; }  // this is going to be a youtube link
+        public string Category { get; set; } = "Uncategorized";
+        public bool UserMade { get; set; } = false;
 
     }
 }

@@ -5,6 +5,7 @@ using FridgeHandler.Services.Implementations;
 using FridgeHandler.Services.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -22,6 +23,9 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 builder.Services.AddScoped<IRecipeService, RecipeService>();
+builder.Services.AddScoped<IImageRecognitionService, ImageRecognitionService>();
+// services.AddTransient<IEmailSender, YourEmailSender>(); // If you use one
+
 
 
 // Configure JWT authentication
@@ -38,12 +42,15 @@ builder.Services.AddAuthentication(options =>
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])
+            ),
             ValidateIssuer = false,
             ValidateAudience = false,
             ValidateLifetime = true
         };
     });
+
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

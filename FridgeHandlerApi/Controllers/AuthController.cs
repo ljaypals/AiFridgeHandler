@@ -27,19 +27,32 @@ namespace FridgeHandlerAPI.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+            var user = new ApplicationUser
+            {
+                UserName = model.Username,
+                Email = model.Email,
+                PhoneNumber = model.PhoneNumber,
+                EmailConfirmed = false
+            };
+
             var result = await _userManager.CreateAsync(user, model.Password);
 
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
 
-            // Assign default role
             await _userManager.AddToRoleAsync(user, "User");
 
-            return Ok(new { message = "User registered successfully" });
+            // Generate confirmation link
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationLink = Url.Action(nameof(ConfirmEmail), "Auth", new { userId = user.Id, token }, Request.Scheme);
+
+            // TODO: Send confirmationLink by email
+            return Ok(new { message = "Registration successful. Please confirm your email.", link = confirmationLink });
         }
+
 
 
         [HttpPost("login")]
@@ -60,7 +73,9 @@ namespace FridgeHandlerAPI.Controllers
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email)
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(ClaimTypes.NameIdentifier, user.Id)
+
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
@@ -74,13 +89,21 @@ namespace FridgeHandlerAPI.Controllers
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-    }
+        
+        [HttpGet("confirm")]
+        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return NotFound();
 
-    public class RegisterModel
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            return result.Succeeded ? Ok("Email confirmed!") : BadRequest("Email confirmation failed.");
+        }
+
+        
     }
+    
 
     public class LoginModel
     {

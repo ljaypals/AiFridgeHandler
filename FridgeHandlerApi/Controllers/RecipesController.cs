@@ -25,8 +25,14 @@ namespace FridgeHandlerAPI.Controllers
             var recipes = await _recipeService.GetRecipesByIngredientsAsync(ingredients);
             return Ok(recipes);
         }
+        [HttpGet("all")]
+        public async Task<ActionResult<IEnumerable<Recipe>>> GetAllRecipes()
+        {
+            var allRecipes = await _recipeService.GetAllRecipesAsync();
+            return Ok(allRecipes);
+        }
 
-        [HttpPost]
+        [HttpPost("add")]
         public async Task<ActionResult<Recipe>> AddRecipe(Recipe recipe)
         {
             var newRecipe = await _recipeService.AddRecipeAsync(recipe);
@@ -48,6 +54,32 @@ namespace FridgeHandlerAPI.Controllers
                 ? Ok(suggestedRecipes)
                 : StatusCode(500, "Error: Unable to generate recipe suggestions at this time.");
         }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteRecipe(int id)
+        {
+            var recipe = await _recipeService.GetRecipeByIdAsync(id);
+            if (recipe == null)
+                return NotFound();
+
+            await _recipeService.DeleteRecipeAsync(id);
+            return NoContent();
+        }
+
+        
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateRecipe(int id, [FromBody] Recipe updatedRecipe)
+        {
+            if (id != updatedRecipe.Id)
+                return BadRequest("Recipe ID mismatch.");
+
+            var existing = await _recipeService.GetRecipeByIdAsync(id);
+            if (existing == null)
+                return NotFound();
+
+            await _recipeService.UpdateRecipeAsync(updatedRecipe);
+            return NoContent(); // 204
+        }
+
 
     }
 }

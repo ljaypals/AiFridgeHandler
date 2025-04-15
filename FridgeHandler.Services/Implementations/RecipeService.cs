@@ -12,6 +12,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FridgeHandler.Services.Implementations
 {
@@ -34,6 +35,12 @@ namespace FridgeHandler.Services.Implementations
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
         }
 
+        public async Task<IEnumerable<Recipe>> GetAllRecipesAsync()
+        {
+            return await _context.Recipes.ToListAsync();
+        }
+
+
         public async Task<IEnumerable<Recipe>> GetRecipesByIngredientsAsync(IEnumerable<string> ingredients)
         {
             return await _context.Recipes
@@ -46,6 +53,39 @@ namespace FridgeHandler.Services.Implementations
             _context.Recipes.Add(recipe);
             await _context.SaveChangesAsync();
             return recipe;
+        }
+
+        public async Task DeleteRecipeAsync(int id)
+        {
+            var recipe = await _context.Recipes.FindAsync(id);
+            if (recipe != null)
+            {
+                _context.Recipes.Remove(recipe);
+                await _context.SaveChangesAsync();
+            }
+        }
+        
+        public async Task<Recipe?> GetRecipeByIdAsync(int id)
+        {
+            return await _context.Recipes.FindAsync(id);
+        }
+
+        public async Task UpdateRecipeAsync(Recipe updatedRecipe)
+        {
+            var existing = await _context.Recipes.FindAsync(updatedRecipe.Id);
+            if (existing == null) return;
+
+            existing.Name = updatedRecipe.Name;
+            existing.Ingredients = updatedRecipe.Ingredients;
+            existing.Instructions = updatedRecipe.Instructions;
+            existing.Calories = updatedRecipe.Calories;
+            existing.Fat = updatedRecipe.Fat;
+            existing.Protein = updatedRecipe.Protein;
+            existing.Servings = updatedRecipe.Servings;
+            existing.Category = updatedRecipe.Category;
+            existing.VideoUrl = updatedRecipe.VideoUrl;
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task<IEnumerable<Recipe>> GetRecommendedRecipesAsync(IEnumerable<string> ingredients)
@@ -66,11 +106,11 @@ namespace FridgeHandler.Services.Implementations
                 {
                     new { role = "system", content = "You are an AI fridge assistant suggesting structured recipes in JSON format." },
                     new { role = "user", content = $"Suggest three recipes using: {string.Join(", ", ingredients)}. " +
-                                                   "Return a JSON array where each recipe includes: name, ingredients (list)," +
-                                                   " instructions (string), calories (integer), fat (integer), protein (integer), " +
-                                                   "servings (integer), and videoUrl (string). " +
-                                                   "Try to find a relevant YouTube link for each recipe that shows how to make it, " +
-                                                   "and include it as the videoUrl." }
+                                                   "Return a JSON array where each recipe includes: name, ingredients (list), " +
+                                                   "instructions (string), calories (integer), fat (integer), protein " +
+                                                   "(integer), servings (integer), " +
+                                                   "and category (string: Breakfast, Lunch, Snack, Dessert, or Other)." }
+
 
                 }
             };
@@ -120,13 +160,21 @@ namespace FridgeHandler.Services.Implementations
             try
             {
                 recommendedRecipes = JsonSerializer.Deserialize<IEnumerable<Recipe>>(cleanedJson, options);
+
+                // 🧠 Generate video URL for each recipe
+                foreach (var recipe in recommendedRecipes)
+                {
+                    recipe.UserMade = false; // ✅ ensure GPT recipes don’t break model
+                    var encodedName = Uri.EscapeDataString(recipe.Name);
+                    recipe.VideoUrl = $"https://www.youtube.com/results?search_query={encodedName}";
+                }
+
             }
             catch (JsonException ex)
             {
                 _logger.LogError("Failed to parse cleaned GPT response as JSON: " + ex.Message);
                 return Enumerable.Empty<Recipe>();
             }
-
 
             // Prevent duplicates in the database
             foreach (var recipe in recommendedRecipes)
@@ -144,6 +192,7 @@ namespace FridgeHandler.Services.Implementations
             _cache.Set(cacheKey, recommendedRecipes, TimeSpan.FromHours(24));
 
             return recommendedRecipes;
+
         }
     }
 }
