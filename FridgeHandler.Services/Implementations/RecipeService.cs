@@ -146,8 +146,7 @@ namespace FridgeHandler.Services.Implementations
                 .Trim();
 
             _logger.LogInformation("Cleaned GPT JSON:\n" + cleanedJson);
-
-            // ✅ Use advanced JsonSerializerOptions
+            
             var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
@@ -161,7 +160,6 @@ namespace FridgeHandler.Services.Implementations
             {
                 recommendedRecipes = JsonSerializer.Deserialize<IEnumerable<Recipe>>(cleanedJson, options);
 
-                // 🧠 Generate video URL for each recipe
                 foreach (var recipe in recommendedRecipes)
                 {
                     recipe.UserMade = false; // ✅ ensure GPT recipes don’t break model
